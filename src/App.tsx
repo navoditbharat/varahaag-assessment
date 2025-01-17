@@ -8,14 +8,16 @@ import { exportToGeoJSON, loadGeoJSON } from "./utils/geoJSON";
 import Map from "./components/Map";
 import Sidebar from "./components/Sidebar";
 
+// please ignore this token as it's a public token, i will remove after your review
 const MAPBOX_TOKEN =
   "pk.eyJ1IjoibmF2b2RpdGJoYXJhdCIsImEiOiJjbTYwdXZvOTIwZ2tiMnZzZ2Z1eWlwNnRjIn0.euQUJ8Z15TJ-gXbzXw5fhQ";
-const INITIAL_CENTER = [-74.006, 40.7128];
+const INITIAL_CENTER = [77.2322, 28.6122];
 
 const App: React.FC = () => {
   const [markers, setMarkers] = useState<Marker[]>([]);
   const [polygon, setPolygon] = useState<Polygon | null>(null);
   const [polygonArea, setPolygonArea] = useState<number | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     const savedState = loadFromLocalStorage();
@@ -26,8 +28,10 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (polygon && polygon.coordinates.length > 2) {
-      const area = calculateArea(polygon);
+    if (polygon && polygon.coordinates.length > 3) {
+      const area = calculateArea({
+        coordinates: [...polygon.coordinates, polygon.coordinates[0]],
+      });
       setPolygonArea(area);
     } else {
       setPolygonArea(null);
@@ -94,8 +98,12 @@ const App: React.FC = () => {
     []
   );
 
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
   return (
-    <div className="flex h-screen">
+    <div className="flex flex-col h-screen md:flex-row">
       <Sidebar
         markers={markers}
         polygonArea={polygonArea}
@@ -103,6 +111,8 @@ const App: React.FC = () => {
         onSave={handleSave}
         onExport={handleExport}
         onImport={handleImport}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
       />
       <Map
         accessToken={MAPBOX_TOKEN}
@@ -110,8 +120,15 @@ const App: React.FC = () => {
         markers={markers}
         polygon={polygon}
         onAddMarker={handleAddMarker}
+        onClear={handleClear}
         onAddPolygonVertex={handleAddPolygonVertex}
       />
+      <button
+        className="md:hidden fixed top-4 left-4 z-10 bg-white p-2 rounded-full shadow-md"
+        onClick={toggleSidebar}
+      >
+        {isSidebarOpen ? "✕" : "☰"}
+      </button>
     </div>
   );
 };

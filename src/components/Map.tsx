@@ -1,8 +1,9 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, useCallback } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { Marker, Polygon } from "../types";
 import { Position } from "geojson";
+
+import { Marker, Polygon } from "../types";
 
 interface MapProps {
   accessToken: string;
@@ -11,6 +12,7 @@ interface MapProps {
   polygon: Polygon | null;
   onAddMarker: (lngLat: Position) => void;
   onAddPolygonVertex: (lngLat: Position) => void;
+  onClear: () => void;
 }
 
 const Map: React.FC<MapProps> = ({
@@ -20,14 +22,22 @@ const Map: React.FC<MapProps> = ({
   polygon,
   onAddMarker,
   onAddPolygonVertex,
+  onClear,
 }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [isDrawingPolygon, setIsDrawingPolygon] = useState(false);
 
+  const toggleDrawingMode = useCallback(() => {
+    setIsDrawingPolygon((prev) => {
+      if (!prev) {
+        onClear();
+      }
+      return !prev;
+    });
+  }, []);
+
   useEffect(() => {
-    console.log(center);
-    // if (map.current) return;
     mapboxgl.accessToken = accessToken;
     map.current = new mapboxgl.Map({
       container: mapContainer.current!,
@@ -42,36 +52,28 @@ const Map: React.FC<MapProps> = ({
           type: "geojson",
           data: {
             type: "FeatureCollection",
-            features: [
-              {
-                type: "Feature",
-                geometry: {
-                  type: "Polygon",
-                  coordinates: [],
-                },
-                properties: {},
-              },
-            ],
+            features: [],
+          },
+        });
+
+        map.current.addLayer({
+          id: "polygon",
+          type: "fill",
+          source: "polygon",
+          layout: {},
+          paint: {
+            "fill-color": "#088",
+            "fill-opacity": 0.3,
           },
         });
       }
-
-      map.current!.addLayer({
-        id: "polygon",
-        type: "fill",
-        source: "polygon",
-        layout: {},
-        paint: {
-          "fill-color": "#088",
-          "fill-opacity": 0.3,
-        },
-      });
     });
 
     map.current.on("click", (e) => {
       const lngLat: Position = [e.lngLat.lng, e.lngLat.lat];
       if (isDrawingPolygon) {
         onAddPolygonVertex(lngLat);
+        onAddMarker(lngLat);
       } else {
         onAddMarker(lngLat);
       }
@@ -82,16 +84,16 @@ const Map: React.FC<MapProps> = ({
         map.current.remove();
       }
     };
-  }, [accessToken, center, onAddMarker, onAddPolygonVertex, isDrawingPolygon]);
+  }, [accessToken, center, isDrawingPolygon, onAddMarker, onAddPolygonVertex]);
 
   useEffect(() => {
-    markers.forEach((marker) => {
-      if (map.current) {
+    if (map.current) {
+      markers.forEach((marker) => {
         new mapboxgl.Marker()
           .setLngLat(marker.coordinates as [number, number])
-          .addTo(map.current);
-      }
-    });
+          .addTo(map.current!);
+      });
+    }
   }, [markers]);
 
   useEffect(() => {
@@ -120,7 +122,7 @@ const Map: React.FC<MapProps> = ({
       <div ref={mapContainer} className="h-full" />
       <button
         className="absolute bottom-4 right-4 bg-blue-500 text-white px-4 py-2 rounded"
-        onClick={() => setIsDrawingPolygon(!isDrawingPolygon)}
+        onClick={toggleDrawingMode}
       >
         {isDrawingPolygon ? "Finish Polygon" : "Draw Polygon"}
       </button>
