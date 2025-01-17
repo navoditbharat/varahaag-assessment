@@ -27,7 +27,7 @@ const Map: React.FC<MapProps> = ({
 
   useEffect(() => {
     console.log(center);
-    if (map.current) return;
+    // if (map.current) return;
     mapboxgl.accessToken = accessToken;
     map.current = new mapboxgl.Map({
       container: mapContainer.current!,
