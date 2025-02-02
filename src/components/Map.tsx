@@ -35,7 +35,7 @@ const Map: React.FC<MapProps> = ({
       }
       return !prev;
     });
-  }, []);
+  }, [onClear]);
 
   useEffect(() => {
     mapboxgl.accessToken = accessToken;
@@ -57,13 +57,24 @@ const Map: React.FC<MapProps> = ({
         });
 
         map.current.addLayer({
-          id: "polygon",
+          id: "polygon-fill",
           type: "fill",
           source: "polygon",
           layout: {},
           paint: {
-            "fill-color": "#088",
+            "fill-color": "#0080ff",
             "fill-opacity": 0.3,
+          },
+        });
+
+        map.current.addLayer({
+          id: "polygon-outline",
+          type: "line",
+          source: "polygon",
+          layout: {},
+          paint: {
+            "line-color": "#0000ff",
+            "line-width": 2,
           },
         });
       }
@@ -107,7 +118,12 @@ const Map: React.FC<MapProps> = ({
               type: "Feature",
               geometry: {
                 type: "Polygon",
-                coordinates: polygon.coordinates,
+                coordinates: [
+                  [
+                    ...(polygon.coordinates as any),
+                    polygon.coordinates[0] as any,
+                  ],
+                ],
               },
               properties: {},
             },
@@ -118,7 +134,7 @@ const Map: React.FC<MapProps> = ({
   }, [polygon]);
 
   return (
-    <div className="flex-1">
+    <div className="flex-1 relative">
       <div ref={mapContainer} className="h-full" />
       <button
         className="absolute bottom-4 right-4 bg-blue-500 text-white px-4 py-2 rounded"
